@@ -88,6 +88,21 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock # Optional, only if you want docker integration
       - ./docker_volumes/Homarr:/appdata
     environment:
-      - SECRET_ENCRYPTION_KEY=b0b1f3d8fc47608488dd38f4974f4d77019e7b1f1c7aacc960a7c0a5ac8c3ec2
+      - SECRET_ENCRYPTION_KEY=changeme
     ports:
       - '80:7575'
+
+
+  # Upsnap
+  # WoL Service
+  upsnap:
+    cap_add:
+      - NET_RAW # NET_RAW is required for privileged ping
+    cap_drop:
+      - ALL
+    container_name: upsnap
+    image: ghcr.io/seriousm4x/upsnap:5 # images are also available on docker hub: seriousm4x/upsnap:5
+    network_mode: host # host is required for WOL magic packets
+    restart: unless-stopped
+    volumes:
+      - .docker_volumes/Upsnap:/app/pb_data
