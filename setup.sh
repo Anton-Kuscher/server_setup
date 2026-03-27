@@ -50,11 +50,12 @@ mkdir -p docker_volumes/Vaultwarden \
 
 # Create Searchagent startup script
 echo "Creating Searchagent startup script..."
-cat > Searchagent/startup.sh << 'EOF'
+SEARCHAGENT_PATH="$(pwd)/Searchagent"
+cat > Searchagent/startup.sh << EOF
 #!/bin/bash
 screen -dmS willhaben_suchagent
-screen -S willhaben_suchagent -X stuff 'cd /root/Willhaben_Suchagent/\n'
-screen -S willhaben_suchagent -X stuff 'java -jar /root/Willhaben_Suchagent/Willhaben-Suchagent.jar\n'
+screen -S willhaben_suchagent -X stuff 'cd $SEARCHAGENT_PATH\n'
+screen -S willhaben_suchagent -X stuff 'java -jar $SEARCHAGENT_PATH/Willhaben-Suchagent.jar\n'
 EOF
 chmod +x Searchagent/startup.sh
 echo "Searchagent startup script created and made executable."
@@ -121,6 +122,10 @@ openssl req -x509 -nodes -days 3650 -newkey rsa:4096 \
     -subj "/CN=$VW_DOMAIN" \
     -addext "subjectAltName=DNS:$VW_DOMAIN"
 echo "SSL certificate generated."
+
+# Copy certificate to Vaultwarden folder for easy access/distribution
+cp /etc/ssl/vaultwarden/vaultwarden.crt docker_volumes/Vaultwarden/vaultwarden.crt
+echo "Certificate copied to docker_volumes/Vaultwarden/vaultwarden.crt"
 
 # Write nginx config for Vaultwarden
 echo "Configuring nginx reverse proxy for Vaultwarden..."
