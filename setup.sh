@@ -38,6 +38,14 @@ else
     echo "screen already installed: $(screen --version)"
 fi
 
+# Install Java JRE if not present
+if ! command -v java &> /dev/null; then
+    echo "Installing Java JRE..."
+    apt-get install -y default-jre
+else
+    echo "Java already installed: $(java -version 2>&1 | head -n 1)"
+fi
+
 # Make Directories
 echo "Creating directories..."
 mkdir -p docker_volumes/Vaultwarden \
@@ -110,8 +118,17 @@ fi
 echo "Installing nginx and openssl..."
 apt-get install -y nginx openssl
 
-# Prompt for domain
-read -p "Enter your Vaultwarden domain (e.g. vw.yourdomain.com): " VW_DOMAIN
+# Prompt for domain with typo confirmation
+while true; do
+    read -p "Enter your Vaultwarden domain (e.g. vw.yourdomain.com): " VW_DOMAIN
+    read -p "Confirm your Vaultwarden domain: " VW_DOMAIN_CONFIRM
+    if [ "$VW_DOMAIN" = "$VW_DOMAIN_CONFIRM" ]; then
+        echo "Domain confirmed: $VW_DOMAIN"
+        break
+    else
+        echo "Domains do not match, please try again."
+    fi
+done
 
 # Generate self-signed SSL certificate
 echo "Generating self-signed SSL certificate for $VW_DOMAIN..."
@@ -172,3 +189,6 @@ echo "Vaultwarden DOMAIN updated in docker-compose.yml."
 
 echo ""
 echo "Setup complete!"
+echo ""
+echo "if you have previous configurations now would be the time to add them."
+echo "otherwise use docker-compose up -d now to get everything running"
