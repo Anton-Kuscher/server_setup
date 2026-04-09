@@ -46,6 +46,22 @@ else
     echo "Java already installed: $(java -version 2>&1 | head -n 1)"
 fi
 
+# Install zip if not present
+if ! command -v zip &> /dev/null; then
+    echo "Installing zip..."
+    apt-get install -y zip
+else
+    echo "zip already installed: $(zip --version | head -n 1)"
+fi
+
+# Install unzip if not present
+if ! command -v unzip &> /dev/null; then
+    echo "Installing unzip..."
+    apt-get install -y unzip
+else
+    echo "unzip already installed: $(unzip -v | head -n 1)"
+fi
+
 # Make Directories
 echo "Creating directories..."
 mkdir -p docker_volumes/Vaultwarden \
@@ -67,6 +83,45 @@ screen -S willhaben_suchagent -X stuff 'java -jar $SEARCHAGENT_PATH/Willhaben-Su
 EOF
 chmod +x Searchagent/startup.sh
 echo "Searchagent startup script created and made executable."
+
+# Create backup_configs.sh script
+echo "Creating backup_configs.sh..."
+SETUP_PATH="$(pwd)"
+cat > backup_configs.sh << EOF
+#!/bin/bash
+
+BACKUP_DIR="$SETUP_PATH/backup_configs"
+TIMESTAMP=\$(date +"%Y-%m-%d_%H-%M-%S")
+BACKUP_FILE="\$BACKUP_DIR/backup_\$TIMESTAMP.zip"
+
+# Create backup directory if it doesn't exist
+mkdir -p "\$BACKUP_DIR"
+
+# Create zip archive with timestamp
+echo "Creating backup: \$BACKUP_FILE"
+zip -r "\$BACKUP_FILE" \\
+    "$SETUP_PATH/docker_volumes/Vaultwarden" \\
+    "$SETUP_PATH/docker_volumes/PiHole" \\
+    "$SETUP_PATH/docker_volumes/OpenVPN" \\
+    "$SETUP_PATH/docker_volumes/Affine" \\
+    "$SETUP_PATH/docker_volumes/UpSnap" \\
+    "$SETUP_PATH/docker_volumes/Homarr"
+
+if [ \$? -eq 0 ]; then
+    echo "Backup created successfully: \$BACKUP_FILE"
+else
+    echo "Error: Backup failed!"
+    exit 1
+fi
+
+# Keep only the 5 most recent backups
+echo "Cleaning up old backups..."
+ls -tp "\$BACKUP_DIR"/backup_*.zip | tail -n +6 | xargs -I {} rm -- {}
+REMAINING=\$(ls "\$BACKUP_DIR"/backup_*.zip | wc -l)
+echo "Backup cleanup done. \$REMAINING backup(s) retained."
+EOF
+chmod +x backup_configs.sh
+echo "backup_configs.sh created and made executable."
 
 # Pull docker-compose file from GitHub
 DOCKER_COMPOSE_URL="https://raw.githubusercontent.com/Anton-Kuscher/server_setup/refs/heads/master/docker-compose.yml"
