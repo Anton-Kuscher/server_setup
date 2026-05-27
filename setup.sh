@@ -38,13 +38,13 @@ else
     echo "screen already installed: $(screen --version)"
 fi
 
-# Install Java JRE if not present
-if ! command -v java &> /dev/null; then
-    echo "Installing Java JRE..."
-    apt-get install -y default-jre
-else
-    echo "Java already installed: $(java -version 2>&1 | head -n 1)"
-fi
+# # Install Java JRE if not present
+# if ! command -v java &> /dev/null; then
+#     echo "Installing Java JRE..."
+#     apt-get install -y default-jre
+# else
+#     echo "Java already installed: $(java -version 2>&1 | head -n 1)"
+# fi
 
 # Install zip if not present
 if ! command -v zip &> /dev/null; then
@@ -72,17 +72,17 @@ mkdir -p docker_volumes/Vaultwarden \
          docker_volumes/Homarr \
          Searchagent
 
-# Create Searchagent startup script
-echo "Creating Searchagent startup script..."
-SEARCHAGENT_PATH="$(pwd)/Searchagent"
-cat > Searchagent/startup.sh << EOF
-#!/bin/bash
-screen -dmS willhaben_suchagent
-screen -S willhaben_suchagent -X stuff 'cd $SEARCHAGENT_PATH\n'
-screen -S willhaben_suchagent -X stuff 'java -jar $SEARCHAGENT_PATH/Willhaben-Suchagent.jar\n'
-EOF
-chmod +x Searchagent/startup.sh
-echo "Searchagent startup script created and made executable."
+# # Create Searchagent startup script
+# echo "Creating Searchagent startup script..."
+# SEARCHAGENT_PATH="$(pwd)/Searchagent"
+# cat > Searchagent/startup.sh << EOF
+# #!/bin/bash
+# screen -dmS willhaben_suchagent
+# screen -S willhaben_suchagent -X stuff 'cd $SEARCHAGENT_PATH\n'
+# screen -S willhaben_suchagent -X stuff 'java -jar $SEARCHAGENT_PATH/Willhaben-Suchagent.jar\n'
+# EOF
+# chmod +x Searchagent/startup.sh
+# echo "Searchagent startup script created and made executable."
 
 # Create backup_configs.sh script
 echo "Creating backup_configs.sh..."
@@ -140,30 +140,30 @@ HOMARR_SECRET_KEY=$(openssl rand -hex 32)
 sed -i "s/SECRET_ENCRYPTION_KEY=.*/SECRET_ENCRYPTION_KEY=$HOMARR_SECRET_KEY/" docker-compose.yml
 echo "Homarr SECRET_ENCRYPTION_KEY injected into docker-compose.yml."
 
-# Pull Searchagent JAR from GitHub
-# Note: using raw.githubusercontent.com for direct binary download instead of the blob page URL
-SEARCHAGENT_JAR_URL="https://github.com/Anton-Kuscher/server_setup/raw/refs/heads/master/Willhaben-Suchagent.jar"
-echo "Pulling Searchagent JAR from GitHub..."
-curl -fsSL "$SEARCHAGENT_JAR_URL" -o Searchagent/Willhaben-Suchagent.jar
-if [ $? -eq 0 ]; then
-    echo "Willhaben-Suchagent.jar downloaded successfully."
-else
-    echo "Error: Failed to download Willhaben-Suchagent.jar from $SEARCHAGENT_JAR_URL"
-    exit 1
-fi
+# # Pull Searchagent JAR from GitHub
+# # Note: using raw.githubusercontent.com for direct binary download instead of the blob page URL
+# SEARCHAGENT_JAR_URL="https://github.com/Anton-Kuscher/server_setup/raw/refs/heads/master/Willhaben-Suchagent.jar"
+# echo "Pulling Searchagent JAR from GitHub..."
+# curl -fsSL "$SEARCHAGENT_JAR_URL" -o Searchagent/Willhaben-Suchagent.jar
+# if [ $? -eq 0 ]; then
+#     echo "Willhaben-Suchagent.jar downloaded successfully."
+# else
+#     echo "Error: Failed to download Willhaben-Suchagent.jar from $SEARCHAGENT_JAR_URL"
+#     exit 1
+# fi
 
-# Add Searchagent startup to crontab for reboot
-echo "Adding Searchagent startup to crontab..."
-STARTUP_PATH="$(pwd)/Searchagent/startup.sh"
-CRON_JOB="@reboot $STARTUP_PATH"
+# # Add Searchagent startup to crontab for reboot
+# echo "Adding Searchagent startup to crontab..."
+# STARTUP_PATH="$(pwd)/Searchagent/startup.sh"
+# CRON_JOB="@reboot $STARTUP_PATH"
 
-# Only add if not already present
-if ! crontab -l 2>/dev/null | grep -qF "$STARTUP_PATH"; then
-    (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
-    echo "Crontab entry added: $CRON_JOB"
-else
-    echo "Crontab entry already exists, skipping."
-fi
+# # Only add if not already present
+# if ! crontab -l 2>/dev/null | grep -qF "$STARTUP_PATH"; then
+#     (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+#     echo "Crontab entry added: $CRON_JOB"
+# else
+#     echo "Crontab entry already exists, skipping."
+# fi
 
 # ============================================================
 # Vaultwarden HTTPS Setup (Self-Signed SSL + Nginx Reverse Proxy)
