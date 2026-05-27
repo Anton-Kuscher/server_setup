@@ -66,7 +66,7 @@ fi
 echo "Creating directories..."
 mkdir -p docker_volumes/Vaultwarden \
          docker_volumes/PiHole \
-         docker_volumes/OpenVPN \
+         docker_volumes/wg-easy \
          docker_volumes/Affine \
          docker_volumes/UpSnap \
          docker_volumes/Homarr \
@@ -102,7 +102,7 @@ echo "Creating backup: \$BACKUP_FILE"
 zip -r "\$BACKUP_FILE" \\
     "$SETUP_PATH/docker_volumes/Vaultwarden" \\
     "$SETUP_PATH/docker_volumes/PiHole" \\
-    "$SETUP_PATH/docker_volumes/OpenVPN" \\
+    "$SETUP_PATH/docker_volumes/wg-easy" \\
     "$SETUP_PATH/docker_volumes/Affine" \\
     "$SETUP_PATH/docker_volumes/UpSnap" \\
     "$SETUP_PATH/docker_volumes/Homarr"

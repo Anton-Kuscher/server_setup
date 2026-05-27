@@ -1,3 +1,7 @@
+networks:
+  proxy-network:
+    external: true
+
 services:
 
   # Vaultwarden
@@ -56,23 +60,34 @@ services:
     restart: unless-stopped
 
 
-  # OpenVPN
+  # Wire Guard Easy
   # A VPN to rech the network from outside
-  openvpn-as:
-    image: openvpn/openvpn-as
-    container_name: openvpn-as
-    devices:
-      - /dev/net/tun:/dev/net/tun
+  wg-easy:
+    environment:
+      - WG_HOST=minddos.ddns.net
+      - PASSWORD_HASH=$$2a$$12$$fPPlNbcqgMKQVG6p0jCo3uIR0nAxnibi9QhIJMpduFpjXs4b5vqBS
+      # - WG_PORT=51820
+      # - WG_DEFAULT_ADDRESS=10.8.0.x
+      # - WG_DEFAULT_DNS=1.1.1.1
+      # - WG_MTU=1420
+      # - WG_ALLOWED_IPS=192.168.0.0/16, 10.0.0.0/8
+      - INSECURE=true #Allow Connection without SSL-certificate
+    image: weejewel/wg-easy
+    container_name: wg-easy
+    volumes:
+      - ./docker_volumes/wg-easy:/etc/wireguard
+    ports:
+      - "51820:51820/udp"
+    #  - "51821:51821/tcp"
+    restart: unless-stopped
     cap_add:
       - NET_ADMIN
-      - MKNOD
-    ports:
-      - 943:943
-      - 8443:443
-      - 1194:1194/udp
-    volumes:
-      - ./docker_volumes/OpenVPN:/openvpn
-    restart: unless-stopped
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    networks:
+      - proxy-network
 
   # Affine
   # Workflow Universal tool
