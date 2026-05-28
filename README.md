@@ -1,5 +1,5 @@
 # Setup for Utility Server
-Running all the services required for a centralized main server.
+Running all the services required for a centralized mini server.
 ---
 
 **To install run** 
@@ -9,7 +9,7 @@ curl -sSL https://raw.githubusercontent.com/Anton-Kuscher/server_setup/refs/head
 ### What you get?
 - Vaultwarden
 - Pihole
-- OpenVPN
+- Wire-Guard easy
 - Homarr
 - Upsnap
 - My Willhaben Searchagent
