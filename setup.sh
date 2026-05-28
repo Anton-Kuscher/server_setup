@@ -62,6 +62,22 @@ else
     echo "unzip already installed: $(unzip -v | head -n 1)"
 fi
 
+# Install g++ if not present
+if ! command -v g++ &> /dev/null; then
+    echo "Installing g++..."
+    apt-get install -y g++
+else
+    echo "gpp already installed: $(g++ -v | head -n 1)"
+fi
+
+# Install libcurl if not present
+if ! command dpkg -s libcurl4-openssl-dev | grep Version &> /dev/null; then
+    echo "Installing libcurl..."
+    apt-get install -y libcurl4-openssl-dev
+else
+    echo "libcurl already installed: $(dpkg -s libcurl4-openssl-dev | grep Version)"
+fi
+
 # Make Directories
 echo "Creating directories..."
 mkdir -p docker_volumes/Vaultwarden \
@@ -72,17 +88,17 @@ mkdir -p docker_volumes/Vaultwarden \
          docker_volumes/Homarr \
          Searchagent
 
-# # Create Searchagent startup script
-# echo "Creating Searchagent startup script..."
-# SEARCHAGENT_PATH="$(pwd)/Searchagent"
-# cat > Searchagent/startup.sh << EOF
-# #!/bin/bash
-# screen -dmS willhaben_suchagent
-# screen -S willhaben_suchagent -X stuff 'cd $SEARCHAGENT_PATH\n'
-# screen -S willhaben_suchagent -X stuff 'java -jar $SEARCHAGENT_PATH/Willhaben-Suchagent.jar\n'
-# EOF
-# chmod +x Searchagent/startup.sh
-# echo "Searchagent startup script created and made executable."
+# Create Searchagent startup script
+echo "Creating Searchagent startup script..."
+SEARCHAGENT_PATH="$(pwd)/Searchagent"
+cat > Searchagent/startup.sh << EOF
+#!/bin/bash
+screen -dmS willhaben_suchagent
+screen -S willhaben_suchagent -X stuff 'cd $SEARCHAGENT_PATH\n'
+screen -S willhaben_suchagent -X stuff '$SEARCHAGENT_PATH/a.out\n'
+EOF
+chmod +x Searchagent/startup.sh
+echo "Searchagent startup script created and made executable."
 
 # Create backup_configs.sh script
 echo "Creating backup_configs.sh..."
@@ -140,17 +156,17 @@ HOMARR_SECRET_KEY=$(openssl rand -hex 32)
 sed -i "s/SECRET_ENCRYPTION_KEY=.*/SECRET_ENCRYPTION_KEY=$HOMARR_SECRET_KEY/" docker-compose.yml
 echo "Homarr SECRET_ENCRYPTION_KEY injected into docker-compose.yml."
 
-# # Pull Searchagent JAR from GitHub
-# # Note: using raw.githubusercontent.com for direct binary download instead of the blob page URL
-# SEARCHAGENT_JAR_URL="https://github.com/Anton-Kuscher/server_setup/raw/refs/heads/master/Willhaben-Suchagent.jar"
-# echo "Pulling Searchagent JAR from GitHub..."
-# curl -fsSL "$SEARCHAGENT_JAR_URL" -o Searchagent/Willhaben-Suchagent.jar
-# if [ $? -eq 0 ]; then
-#     echo "Willhaben-Suchagent.jar downloaded successfully."
-# else
-#     echo "Error: Failed to download Willhaben-Suchagent.jar from $SEARCHAGENT_JAR_URL"
-#     exit 1
-# fi
+# Pull Searchagent cpp from GitHub
+# Note: using raw.githubusercontent.com for direct binary download instead of the blob page URL
+SEARCHAGENT_cpp_URL="https://github.com/Anton-Kuscher/server_setup/raw/refs/heads/master/main.cpp"
+echo "Pulling Searchagent cpp from GitHub..."
+curl -fsSL "$SEARCHAGENT_cpp_URL" -o Searchagent/main.cpp
+if [ $? -eq 0 ]; then
+    echo "main.cpp downloaded successfully."
+else
+    echo "Error: Failed to download main.cpp from $SEARCHAGENT_cpp_URL"
+    exit 1
+fi
 
 # # Add Searchagent startup to crontab for reboot
 # echo "Adding Searchagent startup to crontab..."
@@ -246,4 +262,6 @@ echo ""
 echo "Setup complete!"
 echo ""
 echo "if you have previous configurations now would be the time to add them."
+echo "furthermore compile the Searchagent and add its reboot job to 'crontab -e'"
+echo "dont forget to compile with '-libcurl'"
 echo "otherwise use docker-compose up -d now to get everything running"
