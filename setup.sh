@@ -38,14 +38,6 @@ else
     echo "screen already installed: $(screen --version)"
 fi
 
-# # Install Java JRE if not present
-# if ! command -v java &> /dev/null; then
-#     echo "Installing Java JRE..."
-#     apt-get install -y default-jre
-# else
-#     echo "Java already installed: $(java -version 2>&1 | head -n 1)"
-# fi
-
 # Install zip if not present
 if ! command -v zip &> /dev/null; then
     echo "Installing zip..."
