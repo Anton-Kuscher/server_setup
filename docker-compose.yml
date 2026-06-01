@@ -12,10 +12,12 @@ services:
     restart: unless-stopped
     environment:
       DOMAIN: "https://vw.domain.tld"
+      ROCKET_TLS: '{certs="/ssl/vaultwarden.crt",key="/ssl/vaultwarden.key"}'
     volumes:
       - ./docker_volumes/Vaultwarden:/data/
+      - /etc/ssl/vaultwarden:/ssl:ro
     ports:
-      - 127.0.0.1:8000:80
+      - 8000:80
 
 
   # PiHole
@@ -61,7 +63,7 @@ services:
 
 
   # Wire Guard Easy
-  # A VPN to rech the network from outside
+  # A VPN to reach the network from outside
   wg-easy:
     environment:
       - WG_HOST=minddos.ddns.net
@@ -88,6 +90,7 @@ services:
       - net.ipv4.conf.all.src_valid_mark=1
     networks:
       - proxy-network
+
 
   # Affine
   # Workflow Universal tool
@@ -120,4 +123,4 @@ services:
     network_mode: host # host is required for WOL magic packets
     restart: unless-stopped
     volumes:
-      - .docker_volumes/Upsnap:/app/pb_data
+      - ./docker_volumes/Upsnap:/app/pb_data

@@ -174,12 +174,13 @@ fi
 # fi
 
 # ============================================================
-# Vaultwarden HTTPS Setup (Self-Signed SSL + Nginx Reverse Proxy)
+# Vaultwarden HTTPS Setup (Self-Signed SSL Certificate)
+# Nginx not needed — Vaultwarden serves HTTPS natively via ROCKET_TLS
 # ============================================================
 
-# Install nginx and openssl if not present
-echo "Installing nginx and openssl..."
-apt-get install -y nginx openssl
+# Install openssl if not present
+echo "Installing openssl..."
+apt-get install -y openssl
 
 # Prompt for domain with typo confirmation
 # Uses /dev/tty explicitly so read works when script is piped via curl | bash
@@ -208,54 +209,18 @@ echo "SSL certificate generated."
 cp /etc/ssl/vaultwarden/vaultwarden.crt docker_volumes/Vaultwarden/vaultwarden.crt
 echo "Certificate copied to docker_volumes/Vaultwarden/vaultwarden.crt"
 
-# Write nginx config for Vaultwarden
-# Uses a unique delimiter (NGINX_EOF) to avoid heredoc conflicts when piped via curl | bash
-echo "Configuring nginx reverse proxy for Vaultwarden..."
-cat > /etc/nginx/sites-available/vaultwarden << NGINX_EOF
-server {
-    listen 80;
-    server_name $VW_DOMAIN;
-    return 301 https://\$host\$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name $VW_DOMAIN;
-
-    ssl_certificate     /etc/ssl/vaultwarden/vaultwarden.crt;
-    ssl_certificate_key /etc/ssl/vaultwarden/vaultwarden.key;
-
-    ssl_protocols       TLSv1.2 TLSv1.3;
-    ssl_ciphers         HIGH:!aNULL:!MD5;
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
-NGINX_EOF
-
-# Enable the site
-ln -sf /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
-
-# Remove default nginx site if present to avoid port conflicts
-rm -f /etc/nginx/sites-enabled/default
-
-# Test nginx config and reload
-if nginx -t; then
-    systemctl enable nginx && systemctl restart nginx
-    echo "Nginx configured and restarted."
-else
-    echo "Error: Nginx configuration test failed. Check /etc/nginx/sites-available/vaultwarden"
-    exit 1
-fi
-
 # Patch the DOMAIN value in docker-compose.yml
 sed -i "s|DOMAIN: \"https://vw.domain.tld\"|DOMAIN: \"https://$VW_DOMAIN\"|" docker-compose.yml
 echo "Vaultwarden DOMAIN updated in docker-compose.yml."
+
+# Create external Docker network for proxy (required by wg-easy)
+echo "Creating proxy-network Docker network..."
+if ! docker network inspect proxy-network &> /dev/null; then
+    docker network create proxy-network
+    echo "proxy-network created."
+else
+    echo "proxy-network already exists, skipping."
+fi
 
 echo ""
 echo "Setup complete!"
