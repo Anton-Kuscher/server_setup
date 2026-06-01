@@ -17,17 +17,17 @@ if ! command -v docker &> /dev/null; then
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
     apt-get update -y
-    apt-get install -y docker-ce docker-ce-cli containerd.io
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 else
     echo "Docker already installed: $(docker --version)"
 fi
 
-# Install docker-compose if not present
-if ! command -v docker-compose &> /dev/null; then
+# Install docker-compose if not present (check both standalone and plugin)
+if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null 2>&1; then
     echo "Installing docker-compose..."
-    apt-get install -y docker-compose-plugin docker-compose
+    apt-get install -y docker-compose-plugin
 else
-    echo "docker-compose already installed: $(docker-compose --version)"
+    echo "docker-compose already installed."
 fi
 
 # Install screen if not present
@@ -182,9 +182,10 @@ echo "Installing nginx and openssl..."
 apt-get install -y nginx openssl
 
 # Prompt for domain with typo confirmation
+# Uses /dev/tty explicitly so read works when script is piped via curl | bash
 while true; do
-    read -p "Enter your Vaultwarden domain (e.g. vw.yourdomain.com): " VW_DOMAIN
-    read -p "Confirm your Vaultwarden domain: " VW_DOMAIN_CONFIRM
+    read -p "Enter your Vaultwarden domain (e.g. vw.yourdomain.com): " VW_DOMAIN </dev/tty
+    read -p "Confirm your Vaultwarden domain: " VW_DOMAIN_CONFIRM </dev/tty
     if [ "$VW_DOMAIN" = "$VW_DOMAIN_CONFIRM" ]; then
         echo "Domain confirmed: $VW_DOMAIN"
         break
@@ -208,8 +209,9 @@ cp /etc/ssl/vaultwarden/vaultwarden.crt docker_volumes/Vaultwarden/vaultwarden.c
 echo "Certificate copied to docker_volumes/Vaultwarden/vaultwarden.crt"
 
 # Write nginx config for Vaultwarden
+# Uses a unique delimiter (NGINX_EOF) to avoid heredoc conflicts when piped via curl | bash
 echo "Configuring nginx reverse proxy for Vaultwarden..."
-cat > /etc/nginx/sites-available/vaultwarden << EOF
+cat > /etc/nginx/sites-available/vaultwarden << NGINX_EOF
 server {
     listen 80;
     server_name $VW_DOMAIN;
@@ -234,7 +236,7 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
 }
-EOF
+NGINX_EOF
 
 # Enable the site
 ln -sf /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultwarden
@@ -243,8 +245,13 @@ ln -sf /etc/nginx/sites-available/vaultwarden /etc/nginx/sites-enabled/vaultward
 rm -f /etc/nginx/sites-enabled/default
 
 # Test nginx config and reload
-nginx -t && systemctl enable nginx && systemctl restart nginx
-echo "Nginx configured and restarted."
+if nginx -t; then
+    systemctl enable nginx && systemctl restart nginx
+    echo "Nginx configured and restarted."
+else
+    echo "Error: Nginx configuration test failed. Check /etc/nginx/sites-available/vaultwarden"
+    exit 1
+fi
 
 # Patch the DOMAIN value in docker-compose.yml
 sed -i "s|DOMAIN: \"https://vw.domain.tld\"|DOMAIN: \"https://$VW_DOMAIN\"|" docker-compose.yml
