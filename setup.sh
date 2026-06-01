@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Check if running as sudo/root
-if [ "$EUID" -ne 0 ]; then
-    echo "Error: Please run this script as root (sudo ./setup.sh)"
-    exit 1
-fi
+# if [ "$EUID" -ne 0 ]; then
+#     echo "Error: Please run this script as root (sudo ./setup.sh)"
+#     exit 1
+# fi
 
 # Install dependencies: docker-compose and screen
 echo "Installing dependencies..."
