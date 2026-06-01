@@ -6,7 +6,7 @@ Running all the services required for a centralized mini server.
 ```bash
 curl -sSL https://raw.githubusercontent.com/Anton-Kuscher/server_setup/refs/heads/master/setup.sh | bash
 ```
-### What you get?
+### What you get when this actually works?
 - Vaultwarden
 - Pihole
 - Wire-Guard easy
