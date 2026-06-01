@@ -70,6 +70,15 @@ else
     echo "libcurl already installed: $(dpkg -s libcurl4-openssl-dev | grep Version)"
 fi
 
+# Free up port 53 for PiHole by disabling systemd-resolved stub listener
+echo "Freeing port 53 for PiHole..."
+sed -i 's/#DNSStubListener=yes/DNSStubListener=no/' /etc/systemd/resolved.conf
+sed -i 's/DNSStubListener=yes/DNSStubListener=no/' /etc/systemd/resolved.conf
+echo "DNSStubListener=no" >> /etc/systemd/resolved.conf
+ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+systemctl restart systemd-resolved
+echo "systemd-resolved stub listener disabled."
+
 # Make Directories
 echo "Creating directories..."
 mkdir -p docker_volumes/Vaultwarden \
@@ -175,7 +184,7 @@ fi
 
 # ============================================================
 # Vaultwarden HTTPS Setup (Self-Signed SSL Certificate)
-# Nginx not needed — Vaultwarden serves HTTPS natively via ROCKET_TLS
+# Nginx not needed - Vaultwarden serves HTTPS natively via ROCKET_TLS
 # ============================================================
 
 # Install openssl if not present

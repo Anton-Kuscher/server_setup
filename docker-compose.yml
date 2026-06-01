@@ -108,7 +108,7 @@ services:
     environment:
       - SECRET_ENCRYPTION_KEY=changeme
     ports:
-      - '8888:7575'
+      - '80:7575'
 
 
   # Upsnap
