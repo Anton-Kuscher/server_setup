@@ -239,10 +239,24 @@ else
     echo "proxy-network already exists, skipping."
 fi
 
+# Load kernel modules required by wg-easy
+echo "Loading kernel modules for WireGuard..."
+modprobe wireguard
+modprobe iptable_nat
+modprobe iptable_filter
+
+# Persist across reboots
+for mod in wireguard iptable_nat iptable_filter; do
+    if ! grep -qx "$mod" /etc/modules; then
+        echo "$mod" >> /etc/modules
+    fi
+done
+echo "Kernel modules loaded and persisted."
+
 echo ""
 echo "Setup complete!"
 echo ""
 echo "if you have previous configurations now would be the time to add them."
 echo "furthermore compile the Searchagent and add its reboot job to 'crontab -e'"
 echo "dont forget to compile with '-libcurl'"
-echo "otherwise use docker-compose up -d now to get everything running"
+echo "otherwise use docker compose up -d now to get everything running"
