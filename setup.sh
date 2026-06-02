@@ -30,6 +30,14 @@ else
     echo "docker-compose already installed."
 fi
 
+# Install docker-compose if not present
+if ! command -v docker-compose &> /dev/null; then
+    echo "Installing docker-compose..."
+     apt-get install -y docker-compose-v2
+else
+    echo "docker-compose already installed: $(docker-compose -v)"
+fi
+
 # Install screen if not present
 if ! command -v screen &> /dev/null; then
     echo "Installing screen..."
