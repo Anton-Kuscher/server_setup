@@ -177,17 +177,27 @@ else
     exit 1
 fi
 
-# Add Searchagent startup to crontab for reboot
-echo "Adding Searchagent startup to crontab..."
+# Add Searchagent startup and weekly backup to crontab
+echo "Adding jobs to crontab..."
 STARTUP_PATH="$(pwd)/Searchagent/startup.sh"
-CRON_JOB="@reboot $STARTUP_PATH"
+BACKUP_PATH="$(pwd)/backup_configs.sh"
+CRON_REBOOT="@reboot $STARTUP_PATH"
+CRON_BACKUP="0 2 * * 1 $BACKUP_PATH"
 
-# Only add if not already present
+# Add reboot job if not already present
 if ! crontab -l 2>/dev/null | grep -qF "$STARTUP_PATH"; then
-    (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
-    echo "Crontab entry added: $CRON_JOB"
+    (crontab -l 2>/dev/null; echo "$CRON_REBOOT") | crontab -
+    echo "Crontab reboot entry added: $CRON_REBOOT"
 else
-    echo "Crontab entry already exists, skipping."
+    echo "Crontab reboot entry already exists, skipping."
+fi
+
+# Add weekly backup job if not already present
+if ! crontab -l 2>/dev/null | grep -qF "$BACKUP_PATH"; then
+    (crontab -l 2>/dev/null; echo "$CRON_BACKUP") | crontab -
+    echo "Crontab backup entry added: $CRON_BACKUP"
+else
+    echo "Crontab backup entry already exists, skipping."
 fi
 
 # ============================================================
