@@ -11,7 +11,7 @@ services:
     container_name: vaultwarden
     restart: unless-stopped
     environment:
-      DOMAIN: "https://vw.domain.tld"
+      DOMAIN: "https://minddos.ddns.net"
       ROCKET_TLS: '{certs="/ssl/vaultwarden.crt",key="/ssl/vaultwarden.key"}'
     volumes:
       - ./docker_volumes/Vaultwarden:/data/
@@ -90,11 +90,7 @@ services:
       - net.ipv4.conf.all.src_valid_mark=1
     networks:
       - proxy-network
-
-
-  # Affine
-  # Workflow Universal tool
-
+      
 
   # Homarr
   # Dashboard for all services
@@ -123,4 +119,4 @@ services:
     network_mode: host # host is required for WOL magic packets
     restart: unless-stopped
     volumes:
-      - ./docker_volumes/Upsnap:/app/pb_data
+      - ./docker_volumes/UpSnap:/app/pb_data

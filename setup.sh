@@ -177,18 +177,18 @@ else
     exit 1
 fi
 
-# # Add Searchagent startup to crontab for reboot
-# echo "Adding Searchagent startup to crontab..."
-# STARTUP_PATH="$(pwd)/Searchagent/startup.sh"
-# CRON_JOB="@reboot $STARTUP_PATH"
+# Add Searchagent startup to crontab for reboot
+echo "Adding Searchagent startup to crontab..."
+STARTUP_PATH="$(pwd)/Searchagent/startup.sh"
+CRON_JOB="@reboot $STARTUP_PATH"
 
-# # Only add if not already present
-# if ! crontab -l 2>/dev/null | grep -qF "$STARTUP_PATH"; then
-#     (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
-#     echo "Crontab entry added: $CRON_JOB"
-# else
-#     echo "Crontab entry already exists, skipping."
-# fi
+# Only add if not already present
+if ! crontab -l 2>/dev/null | grep -qF "$STARTUP_PATH"; then
+    (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+    echo "Crontab entry added: $CRON_JOB"
+else
+    echo "Crontab entry already exists, skipping."
+fi
 
 # ============================================================
 # Vaultwarden HTTPS Setup (Self-Signed SSL Certificate)
@@ -212,14 +212,18 @@ while true; do
     fi
 done
 
-# Generate self-signed SSL certificate
-echo "Generating self-signed SSL certificate for $VW_DOMAIN..."
+# Auto-detect local IP
+LOCAL_IP=$(hostname -I | awk '{print $1}')
+echo "Detected local IP: $LOCAL_IP"
+
+# Generate self-signed SSL certificate covering both domain and local IP
+echo "Generating self-signed SSL certificate for $VW_DOMAIN and $LOCAL_IP..."
 mkdir -p /etc/ssl/vaultwarden
 openssl req -x509 -nodes -days 3650 -newkey rsa:4096 \
     -keyout /etc/ssl/vaultwarden/vaultwarden.key \
     -out /etc/ssl/vaultwarden/vaultwarden.crt \
     -subj "/CN=$VW_DOMAIN" \
-    -addext "subjectAltName=DNS:$VW_DOMAIN"
+    -addext "subjectAltName=DNS:$VW_DOMAIN,IP:$LOCAL_IP"
 echo "SSL certificate generated."
 
 # Copy certificate to Vaultwarden folder for easy access/distribution
@@ -257,6 +261,5 @@ echo ""
 echo "Setup complete!"
 echo ""
 echo "if you have previous configurations now would be the time to add them."
-echo "furthermore compile the Searchagent and add its reboot job to 'crontab -e'"
-echo "dont forget to compile with '-libcurl'"
+echo "furthermore compile the Searchagent with 'g++ main.cpp -lcurl' so it can actually run"
 echo "otherwise use docker compose up -d now to get everything running"
