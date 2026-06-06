@@ -38,12 +38,12 @@ else
     echo "docker-compose already installed: $(docker-compose -v)"
 fi
 
-# Install screen if not present
-if ! command -v screen &> /dev/null; then
-    echo "Installing screen..."
-    apt-get install -y screen
+# Install tmux if not present
+if ! command -v tmux &> /dev/null; then
+    echo "Installing tmux..."
+    apt-get install -y tmux
 else
-    echo "screen already installed: $(screen --version)"
+    echo "tmux already installed: $(tmux --version)"
 fi
 
 # Install zip if not present
@@ -102,9 +102,33 @@ echo "Creating Searchagent startup script..."
 SEARCHAGENT_PATH="$(pwd)/Searchagent"
 cat > Searchagent/startup.sh << EOF
 #!/bin/bash
-screen -dmS willhaben_suchagent
-screen -S willhaben_suchagent -X stuff 'cd $SEARCHAGENT_PATH\n'
-screen -S willhaben_suchagent -X stuff '$SEARCHAGENT_PATH/a.out\n'
+SESSION=searchagent
+tmux="tmux -2"
+
+# if the session is already running, just attach to it.
+$tmux has-session -t $SESSION 2>/dev/null
+if [ $? -eq 0 ]; then
+       echo "Session $SESSION already exists. Attaching."
+       sleep 1
+       $tmux attach -t $SESSION
+       exit 0;
+fi
+
+# create a new session, named $SESSION, and detach from it
+# run the searchagent in this window
+$tmux new-session -d -s $SESSION -n "Searchagent"
+$tmux send-keys "cd $SEARCHAGENT_PATH" C-m
+$tmux send-keys "./a.out" C-m
+
+# create window for logging the link_list
+$tmux new-window    -t $SESSION -n "link_list_logs"
+$tmux send-keys "cd $SEARCHAGENT_PATHt" C-m
+$tmux send-keys "tail -f link_list.txt" C-m
+
+# create window for modifying the searchagent list
+$tmux new-window    -t $SESSION -n "Searchagents_list"
+$tmux send-keys "cd $SEARCHAGENT_PATH" C-m
+$tmux send-keys "nano searchagents.xml" C-m
 EOF
 chmod +x Searchagent/startup.sh
 echo "Searchagent startup script created and made executable."
