@@ -205,7 +205,7 @@ fi
 echo "Adding jobs to crontab..."
 STARTUP_PATH="$(pwd)/Searchagent/startup.sh"
 BACKUP_PATH="$(pwd)/backup_configs.sh"
-CRON_REBOOT="@reboot $STARTUP_PATH"
+CRON_REBOOT="@reboot SHELL=/bin/bash $STARTUP_PATH"
 CRON_BACKUP="0 2 * * 1 $BACKUP_PATH"
 
 # Add reboot job if not already present
