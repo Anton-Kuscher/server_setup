@@ -102,7 +102,7 @@ echo "Creating Searchagent startup script..."
 SEARCHAGENT_PATH="$(pwd)/Searchagent"
 cat > Searchagent/startup.sh << EOF
 #!/bin/bash
-SESSION=searchagent
+SESSION=Searchagent
 tmux="tmux -2"
 
 # if the session is already running, just attach to it.
@@ -115,20 +115,26 @@ if [ $? -eq 0 ]; then
 fi
 
 # create a new session, named $SESSION, and detach from it
-# run the searchagent in this window
+# edit searchagents in this window
 $tmux new-session -d -s $SESSION -n "Searchagent"
 $tmux send-keys "cd $SEARCHAGENT_PATH" C-m
+$tmux send-keys "clear" C-m
+$tmux send-keys "nano searchagents.xml" C-m
+
+# split down to run searchagent
+$tmux split-window -v
+$tmux send-keys "cd $SEARCHAGENT_PATH" C-m
+$tmux send-keys "clear" C-m
 $tmux send-keys "./a.out" C-m
 
-# create window for logging the link_list
-$tmux new-window    -t $SESSION -n "link_list_logs"
-$tmux send-keys "cd $SEARCHAGENT_PATHt" C-m
+# split right window to log link_list
+$tmux split-window -h
+$tmux send-keys "cd $SEARCHAGENT_PATH" C-m
+$tmux send-keys "clear" C-m
 $tmux send-keys "tail -f link_list.txt" C-m
 
-# create window for modifying the searchagent list
-$tmux new-window    -t $SESSION -n "Searchagents_list"
-$tmux send-keys "cd $SEARCHAGENT_PATH" C-m
-$tmux send-keys "nano searchagents.xml" C-m
+# set focus on nano pane
+$tmux select-pane -t $SESSION:0.0
 EOF
 chmod +x Searchagent/startup.sh
 echo "Searchagent startup script created and made executable."
