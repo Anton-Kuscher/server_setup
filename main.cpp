@@ -43,6 +43,7 @@ size_t DiscardCallback(void* contents, size_t size, size_t nmemb, void* userp);
 int main() {
     curl_global_init(CURL_GLOBAL_DEFAULT);  // Init curl once at startup
 
+    cout << endl;
     cout << GetTimestamp() << "Starting..." << endl;
     #ifdef DEBUG
     cout << "\033[7m" << GetTimestamp() << "started main\033[0m" << endl;
