@@ -71,6 +71,10 @@ int main() {
         cout << "\033[7m" << GetTimestamp() << "starting while loop\033[0m\n";
         #endif
 
+        cout << "\033[F\033[2K";
+        cout << GetTimestamp() << "Starting searchagent cycle." << endl;
+        cout << GetTimestamp() << "Type \"stop\" to Shut down the searchagent." << endl;
+        
         searchagents = ReadFileToString(SearchagentsFile);
 
         #ifdef DEBUG
@@ -95,6 +99,10 @@ int main() {
             RunSearchagent(name, link);
             searchagents = searchagents.substr(linkEnd + 7);  // +7 = length of "</link>"
         }
+
+        cout << "\033[F\033[2K";
+        cout << GetTimestamp() << "Searchagent cycle done." << endl;
+        
 
         for (auto elapsed = chrono::seconds(0); elapsed < sleep_duration; elapsed += check_interval) {
             this_thread::sleep_for(check_interval);
