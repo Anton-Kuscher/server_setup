@@ -91,10 +91,10 @@ echo "systemd-resolved stub listener disabled."
 echo "Creating directories..."
 mkdir -p docker_volumes/Vaultwarden \
          docker_volumes/PiHole \
-         docker_volumes/wg-easy \
          docker_volumes/Affine \
          docker_volumes/UpSnap \
          docker_volumes/Homarr \
+         docker_volumes/nginx \
          Searchagent
 
 # Create Searchagent startup script
@@ -157,10 +157,10 @@ echo "Creating backup: \$BACKUP_FILE"
 zip -r "\$BACKUP_FILE" \\
     "$SETUP_PATH/docker_volumes/Vaultwarden" \\
     "$SETUP_PATH/docker_volumes/PiHole" \\
-    "$SETUP_PATH/docker_volumes/wg-easy" \\
     "$SETUP_PATH/docker_volumes/Affine" \\
     "$SETUP_PATH/docker_volumes/UpSnap" \\
-    "$SETUP_PATH/docker_volumes/Homarr"
+    "$SETUP_PATH/docker_volumes/Homarr" \\
+    "$SETUP_PATH/docker_volumes/nginx"
 
 if [ \$? -eq 0 ]; then
     echo "Backup created successfully: \$BACKUP_FILE"
@@ -178,6 +178,20 @@ EOF
 chmod +x backup_configs.sh
 echo "backup_configs.sh created and made executable."
 
+# Create update_docker_containers.sh script
+echo "Creating update_docker_containers.sh..."
+SETUP_PATH="$(pwd)"
+cat > update_docker_containers.sh << EOF
+#!/bin/bash
+
+./backup_configs.sh
+docker compose pull
+docker compose up --force-recreate --build -d
+docker image prune -f
+EOF
+chmod +x update_docker_containers.sh
+echo "update_docker_containers.sh created and made executable."
+
 # Pull docker-compose file from GitHub
 DOCKER_COMPOSE_URL="https://raw.githubusercontent.com/Anton-Kuscher/server_setup/refs/heads/master/docker-compose.yml"
 echo "Pulling docker-compose.yml from GitHub..."
@@ -189,11 +203,20 @@ else
     exit 1
 fi
 
-# Generate and inject Homarr SECRET_ENCRYPTION_KEY into docker-compose.yml
+# Creating Environment file
+cat > .env << EOF
+VAULTWARDEN_ADMIN_TOKEN=''
+DOMAIN_NAME=''
+HOMARR_KEY=''
+EOF
+
+
+# Generate and inject Homarr SECRET_ENCRYPTION_KEY into .env
 echo "Generating Homarr SECRET_ENCRYPTION_KEY..."
 HOMARR_SECRET_KEY=$(openssl rand -hex 32)
-sed -i "s/SECRET_ENCRYPTION_KEY=.*/SECRET_ENCRYPTION_KEY=$HOMARR_SECRET_KEY/" docker-compose.yml
-echo "Homarr SECRET_ENCRYPTION_KEY injected into docker-compose.yml."
+sed -i "s/HOMARR_KEY='.*/HOMARR_KEY='$HOMARR_SECRET_KEY'/" .env
+#sed -i "s/SECRET_ENCRYPTION_KEY=.*/SECRET_ENCRYPTION_KEY=$HOMARR_SECRET_KEY/" docker-compose.yml
+echo "Homarr SECRET_ENCRYPTION_KEY injected into .env"
 
 # Pull Searchagent cpp from GitHub
 # Note: using raw.githubusercontent.com for direct binary download instead of the blob page URL
@@ -252,6 +275,11 @@ while true; do
     fi
 done
 
+# Injecting domainname into .env
+echo "Injecting Domain Name into .env"
+sed -i "s/DOMAIN_NAME='.*/DOMAIN_NAME='$VW_DOMAIN'/" .env
+echo "Domain Name injected into .env"
+
 # Auto-detect local IP
 LOCAL_IP=$(hostname -I | awk '{print $1}')
 echo "Detected local IP: $LOCAL_IP"
@@ -269,33 +297,6 @@ echo "SSL certificate generated."
 # Copy certificate to Vaultwarden folder for easy access/distribution
 cp /etc/ssl/vaultwarden/vaultwarden.crt docker_volumes/Vaultwarden/vaultwarden.crt
 echo "Certificate copied to docker_volumes/Vaultwarden/vaultwarden.crt"
-
-# Patch the DOMAIN value in docker-compose.yml
-sed -i "s|DOMAIN: \"https://vw.domain.tld\"|DOMAIN: \"https://$VW_DOMAIN\"|" docker-compose.yml
-echo "Vaultwarden DOMAIN updated in docker-compose.yml."
-
-# Create external Docker network for proxy (required by wg-easy)
-echo "Creating proxy-network Docker network..."
-if ! docker network inspect proxy-network &> /dev/null; then
-    docker network create proxy-network
-    echo "proxy-network created."
-else
-    echo "proxy-network already exists, skipping."
-fi
-
-# Load kernel modules required by wg-easy
-echo "Loading kernel modules for WireGuard..."
-modprobe wireguard
-modprobe iptable_nat
-modprobe iptable_filter
-
-# Persist across reboots
-for mod in wireguard iptable_nat iptable_filter; do
-    if ! grep -qx "$mod" /etc/modules; then
-        echo "$mod" >> /etc/modules
-    fi
-done
-echo "Kernel modules loaded and persisted."
 
 echo ""
 echo "Setup complete!"

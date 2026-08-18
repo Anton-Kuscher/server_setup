@@ -7,12 +7,13 @@ services:
   # Vaultwarden
   # Password manager
   vaultwarden:
-    image: vaultwarden/server:latest
     container_name: vaultwarden
+    image: vaultwarden/server:latest
     restart: unless-stopped
     environment:
-      DOMAIN: "https://minddos.ddns.net"
+      DOMAIN: "${DOMAIN_NAME}"
       ROCKET_TLS: '{certs="/ssl/vaultwarden.crt",key="/ssl/vaultwarden.key"}'
+      ADMIN_TOKEN: ${VAULTWARDEN_ADMIN_TOKEN}
     volumes:
       - ./docker_volumes/Vaultwarden:/data/
       - /etc/ssl/vaultwarden:/ssl:ro
@@ -25,6 +26,7 @@ services:
   pihole:
     container_name: pihole
     image: pihole/pihole:latest
+    restart: unless-stopped
     ports:
       # DNS Ports
       - "53:53/tcp"
@@ -33,10 +35,6 @@ services:
       - "8080:80/tcp"
       # Default HTTPs Port. FTL will generate a self-signed certificate
       - "444:443/tcp"
-      # Uncomment the below if using Pi-hole as your DHCP Server
-      #- "67:67/udp"
-      # Uncomment the line below if you are using Pi-hole as your NTP server
-      #- "123:123/udp"
     environment:
       # Set the appropriate timezone for your location from
       # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones, e.g:
@@ -45,52 +43,16 @@ services:
       FTLCONF_webserver_api_password: 'correct horse battery staple'
       # If using Docker's default `bridge` network setting the dns listening mode should be set to 'ALL'
       FTLCONF_dns_listeningMode: 'ALL'
-    # Volumes store your data between container upgrades
+      FTLCONF_webserver_api_app_sudo: "true"
     volumes:
       # For persisting Pi-hole's databases and common configuration file
       - './docker_volumes/PiHole:/etc/pihole'
-      # Uncomment the below if you have custom dnsmasq config files that you want to persist. Not needed for most starting fresh with Pi-hole v6. If you're upgrading from v5 you and have used this directory before, you should keep it enabled for the first v6 container start to allow for a complete migration. It can be removed afterwards. Needs environment variable FTLCONF_misc_etc_dnsmasq_d: 'true'
-      #- './etc-dnsmasq.d:/etc/dnsmasq.d'
     cap_add:
       # See https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
-      # Required if you are using Pi-hole as your DHCP server, else not needed
-      - NET_ADMIN
       # Required if you are using Pi-hole as your NTP client to be able to set the host's system time
       - SYS_TIME
       # Optional, if Pi-hole should get some more processing time
       - SYS_NICE
-    restart: unless-stopped
-
-
-  # Wire Guard Easy
-  # A VPN to reach the network from outside
-  wg-easy:
-    environment:
-      - WG_HOST=minddos.ddns.net
-      - PASSWORD_HASH=$$2a$$12$$fPPlNbcqgMKQVG6p0jCo3uIR0nAxnibi9QhIJMpduFpjXs4b5vqBS
-      # - WG_PORT=51820
-      # - WG_DEFAULT_ADDRESS=10.8.0.x
-      # - WG_DEFAULT_DNS=1.1.1.1
-      # - WG_MTU=1420
-      # - WG_ALLOWED_IPS=192.168.0.0/16, 10.0.0.0/8
-      - INSECURE=true #Allow Connection without SSL-certificate
-    image: weejewel/wg-easy
-    container_name: wg-easy
-    volumes:
-      - ./docker_volumes/wg-easy:/etc/wireguard
-    ports:
-      - "51820:51820/udp"
-      - "51821:51821/tcp"
-    restart: unless-stopped
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    sysctls:
-      - net.ipv4.ip_forward=1
-      - net.ipv4.conf.all.src_valid_mark=1
-    networks:
-      - proxy-network
-      
 
   # Homarr
   # Dashboard for all services
@@ -102,21 +64,49 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock # Optional, only if you want docker integration
       - ./docker_volumes/Homarr:/appdata
     environment:
-      - SECRET_ENCRYPTION_KEY=changeme
+      - SECRET_ENCRYPTION_KEY=380cc35a31ff47f1ba20b57a04bba03529681aca2735593cb96e24fb5065b176
     ports:
       - '80:7575'
-
 
   # Upsnap
   # WoL Service
   upsnap:
+    container_name: upsnap
+    image: ghcr.io/seriousm4x/upsnap:5 # images are also available on docker hub: seriousm4x/upsnap:5
+    restart: unless-stopped
     cap_add:
       - NET_RAW # NET_RAW is required for privileged ping
     cap_drop:
       - ALL
-    container_name: upsnap
-    image: ghcr.io/seriousm4x/upsnap:5 # images are also available on docker hub: seriousm4x/upsnap:5
     network_mode: host # host is required for WOL magic packets
-    restart: unless-stopped
     volumes:
       - ./docker_volumes/UpSnap:/app/pb_data
+
+  # Dash
+  # Monitoring Service to integrate with Dashboard
+  dash:
+    container_name: dash
+    image: mauricenino/dashdot:latest
+    restart: unless-stopped
+    privileged: true
+    environment:
+      DASHDOT_ENABLE_CPU_TEMPS: 'true'
+    ports:
+      - '3001:3001'
+    volumes:
+      - /:/mnt/host:ro
+
+  nginx:
+    container_name: nginx
+    image: jc21/nginx-proxy-manager:latest
+    restart: unless-stopped
+    ports:
+      - '90:80'   # Public HTTP Port
+      - '443:443' # Public HTTPS Port
+      - '81:81'   # Admin Web Port
+    environment:
+      TZ: "Europe/Vienna"
+      DISABLE_IPV6: 'true' # Uncomment if IPv6 is not enabled on host
+    volumes:
+      - ./docker_volumes/nginx/data:/data
+      - ./docker_volumes/nginx/letsencrypt:/etc/letsencrypt
