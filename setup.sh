@@ -152,6 +152,9 @@ BACKUP_FILE="\$BACKUP_DIR/backup_\$TIMESTAMP.zip"
 # Create backup directory if it doesn't exist
 mkdir -p "\$BACKUP_DIR"
 
+# create temporary Backup of Crontab
+crontab -l > $SETUP_PATH/crontab.bak
+
 # Create zip archive with timestamp
 echo "Creating backup: \$BACKUP_FILE"
 zip -r "\$BACKUP_FILE" \\
@@ -160,7 +163,11 @@ zip -r "\$BACKUP_FILE" \\
     "$SETUP_PATH/docker_volumes/Affine" \\
     "$SETUP_PATH/docker_volumes/UpSnap" \\
     "$SETUP_PATH/docker_volumes/Homarr" \\
-    "$SETUP_PATH/docker_volumes/nginx"
+    "$SETUP_PATH/docker_volumes/nginx" \\
+    "$SETUP_PATH/crontab.bak"
+
+# Remove Temporary crontab backup
+rm $SETUP_PATH/crontab.bak
 
 if [ \$? -eq 0 ]; then
     echo "Backup created successfully: \$BACKUP_FILE"
