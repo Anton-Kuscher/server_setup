@@ -226,7 +226,6 @@ sed -i "s/HOMARR_KEY='.*/HOMARR_KEY='$HOMARR_SECRET_KEY'/" .env
 echo "Homarr SECRET_ENCRYPTION_KEY injected into .env"
 
 # Pull Searchagent cpp from GitHub
-# Note: using raw.githubusercontent.com for direct binary download instead of the blob page URL
 SEARCHAGENT_cpp_URL="https://github.com/Anton-Kuscher/server_setup/raw/refs/heads/master/main.cpp"
 echo "Pulling Searchagent cpp from GitHub..."
 curl -fsSL "$SEARCHAGENT_cpp_URL" -o Searchagent/main.cpp
@@ -262,7 +261,6 @@ fi
 
 # ============================================================
 # Vaultwarden HTTPS Setup (Self-Signed SSL Certificate)
-# Nginx not needed - Vaultwarden serves HTTPS natively via ROCKET_TLS
 # ============================================================
 
 # Install openssl if not present
