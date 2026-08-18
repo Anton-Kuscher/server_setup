@@ -185,6 +185,92 @@ EOF
 chmod +x backup_configs.sh
 echo "backup_configs.sh created and made executable."
 
+# Creating Restoration File
+SETUP_PATH="$(pwd)"
+cat > restore_from_backup.sh << EOF
+#!/bin/bash
+
+SETUP_PATH="$SETUP_PATH"
+BACKUP_DIR="\$SETUP_PATH/backup_configs"
+
+# Require exactly one argument
+if [ -z "\$1" ]; then
+    echo "Usage: \$0 <backup_file.zip>"
+    echo "You can pass either just the filename (e.g. backup_2026-08-18_18-50-03.zip)"
+    echo "or a full/relative path to a zip file."
+    exit 1
+fi
+
+# Resolve the backup file: allow either a bare filename (looked up in BACKUP_DIR)
+# or an explicit path
+if [ -f "\$1" ]; then
+    BACKUP_FILE="\$1"
+elif [ -f "\$BACKUP_DIR/\$1" ]; then
+    BACKUP_FILE="\$BACKUP_DIR/\$1"
+else
+    echo "Error: backup file '\$1' not found (checked as given, and in \$BACKUP_DIR)"
+    exit 1
+fi
+
+echo "Using backup file: \$BACKUP_FILE"
+
+# Confirm before overwriting
+read -p "This will overwrite existing files in \$SETUP_PATH/docker_volumes and restore crontab. Continue? [y/N] " CONFIRM
+if [[ "\$CONFIRM" != "y" && "\$CONFIRM" != "Y" ]]; then
+    echo "Aborted."
+    exit 1
+fi
+
+# Extract into a temp directory first so we can validate structure before touching live data
+TMP_RESTORE_DIR="\$(mktemp -d)"
+echo "Extracting backup to temporary directory..."
+unzip -q "\$BACKUP_FILE" -d "\$TMP_RESTORE_DIR"
+if [ \$? -ne 0 ]; then
+    echo "Error: Extraction failed!"
+    rm -rf "\$TMP_RESTORE_DIR"
+    exit 1
+fi
+
+# The zip preserves the original absolute paths, so the extracted content
+# lands under \$TMP_RESTORE_DIR/\$SETUP_PATH/...
+EXTRACTED_ROOT="\$TMP_RESTORE_DIR\$SETUP_PATH"
+
+if [ ! -d "\$EXTRACTED_ROOT" ]; then
+    echo "Error: Unexpected archive structure, could not find expected root: \$EXTRACTED_ROOT"
+    rm -rf "\$TMP_RESTORE_DIR"
+    exit 1
+fi
+
+# Restore docker volumes
+for VOL in Vaultwarden PiHole Affine UpSnap Homarr nginx; do
+    SRC="\$EXTRACTED_ROOT/docker_volumes/\$VOL"
+    DEST="\$SETUP_PATH/docker_volumes/\$VOL"
+    if [ -d "\$SRC" ]; then
+        echo "Restoring \$VOL..."
+        mkdir -p "\$DEST"
+        rsync -a --delete "\$SRC/" "\$DEST/"
+    else
+        echo "Warning: \$VOL not found in backup, skipping."
+    fi
+done
+
+# Restore crontab
+CRON_BAK="\$EXTRACTED_ROOT/crontab.bak"
+if [ -f "\$CRON_BAK" ]; then
+    echo "Restoring crontab..."
+    crontab "\$CRON_BAK"
+else
+    echo "Warning: crontab.bak not found in backup, skipping crontab restore."
+fi
+
+# Clean up
+rm -rf "\$TMP_RESTORE_DIR"
+
+echo "Restore completed successfully from: \$BACKUP_FILE"
+EOF
+
+chmod +x restore_from_backup.sh
+
 # Create update_docker_containers.sh script
 echo "Creating update_docker_containers.sh..."
 SETUP_PATH="$(pwd)"
