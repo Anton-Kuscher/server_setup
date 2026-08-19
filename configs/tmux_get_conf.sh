@@ -35,4 +35,6 @@ set -g status-right-length 30
 set -g status-left-length 30
 EOF
 
+sed -i "\$tmux select-pane -t \$SESSION:0.0/\$tmux select-pane -t \$SESSION:1.1/" Searchagent/startup.sh
+
 echo "alias ta='tmux attach-session'" >> /home/$(whoami)/.bashrc
