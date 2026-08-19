@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Check if running as sudo/root
-# if [ "$EUID" -ne 0 ]; then
-#     echo "Error: Please run this script as root (sudo ./setup.sh)"
-#     exit 1
-# fi
+if [[ $EUID -ne 0 ]]; then
+    echo "This script must be run with sudo or as root." >&2
+    exit 1
+fi
 
 # Install dependencies: docker-compose and screen
 echo "Installing dependencies..."
@@ -144,6 +144,10 @@ echo "Creating backup_configs.sh..."
 SETUP_PATH="$(pwd)"
 cat > backup_configs.sh << EOF
 #!/bin/bash
+if [[ \$EUID -ne 0 ]]; then
+    echo "This script must be run with sudo or as root." >&2
+    exit 1
+fi
 
 BACKUP_DIR="$SETUP_PATH/backup_configs"
 TIMESTAMP=\$(date +"%Y-%m-%d_%H-%M-%S")
@@ -189,6 +193,10 @@ echo "backup_configs.sh created and made executable."
 SETUP_PATH="$(pwd)"
 cat > restore_from_backup.sh << EOF
 #!/bin/bash
+if [[ \$EUID -ne 0 ]]; then
+    echo "This script must be run with sudo or as root." >&2
+    exit 1
+fi
 
 SETUP_PATH="$SETUP_PATH"
 BACKUP_DIR="\$SETUP_PATH/backup_configs"
@@ -276,6 +284,10 @@ echo "Creating update_docker_containers.sh..."
 SETUP_PATH="$(pwd)"
 cat > update_docker_containers.sh << EOF
 #!/bin/bash
+if [[ \$EUID -ne 0 ]]; then
+    echo "This script must be run with sudo or as root." >&2
+    exit 1
+fi
 
 ./backup_configs.sh
 docker compose pull
